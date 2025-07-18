@@ -29,6 +29,7 @@ public:
 
 	/** Combat Interface */
 	virtual int32 GetPlayerLevel() override;
+	virtual void OnDeath() override;
 	/** end Combat Interface */
 
 protected:

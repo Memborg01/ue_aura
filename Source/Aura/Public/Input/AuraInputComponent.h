@@ -8,14 +8,13 @@
 #include "AuraInputComponent.generated.h"
 
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS()
 class AURA_API UAuraInputComponent : public UEnhancedInputComponent
 {
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this component's properties
-	UAuraInputComponent();
+	
 
 	template <class UserClass, typename PressedFuncType, typename ReleasedFuncType, typename HeldFuncType>
 	void BindAbilityActions(const UAuraInputConfig* InputConfig, UserClass* Object, PressedFuncType PressedFunc,
@@ -36,6 +35,12 @@ void UAuraInputComponent::BindAbilityActions(const UAuraInputConfig* InputConfig
 			if (PressedFunc)
 			{
 				BindAction(Action.InputAction, ETriggerEvent::Started, Object, PressedFunc, Action.InputTag);
+
+				/*BindActionValueLambda(Action.InputAction, ETriggerEvent::Started, 
+					[Object, PressedFunc, Tag = Action.InputTag](const FInputActionValue& Value) {
+						(Object->*PressedFunc)(Tag, Value);
+					});*/
+
 			}
 			
 			if (ReleasedFunc)

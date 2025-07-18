@@ -137,6 +137,22 @@ public:
 	FGameplayAttributeData MaxMana;
 	ATTRIBUTE_ACCESSORS(UAuraAttributeSet, MaxMana)
 
+	UPROPERTY(BlueprintReadOnly, Replicated = OnRep_ResistanceFire, Category="Secondary Attributes")
+	FGameplayAttributeData ResistanceFire;
+	ATTRIBUTE_ACCESSORS(UAuraAttributeSet, ResistanceFire)
+
+	UPROPERTY(BlueprintReadOnly, Replicated = OnRep_ResistanceLightning, Category="Secondary Attributes")
+	FGameplayAttributeData ResistanceLightning;
+	ATTRIBUTE_ACCESSORS(UAuraAttributeSet, ResistanceLightning)
+
+	UPROPERTY(BlueprintReadOnly, Replicated = OnRep_ResistanceArcane, Category="Secondary Attributes")
+	FGameplayAttributeData ResistanceArcane;
+	ATTRIBUTE_ACCESSORS(UAuraAttributeSet, ResistanceArcane)
+
+	UPROPERTY(BlueprintReadOnly, Replicated = OnRep_ResistancePhysical, Category="Secondary Attributes")
+	FGameplayAttributeData ResistancePhysical;
+	ATTRIBUTE_ACCESSORS(UAuraAttributeSet, ResistancePhysical)
+
 
 #pragma endregion
 
@@ -157,6 +173,14 @@ public:
 
 #pragma endregion
 
+	/*
+	 * Meta Attributes
+	 */
+
+	UPROPERTY(BlueprintReadOnly, Category="Meta Attributes")
+	FGameplayAttributeData IncomingDamage;
+	ATTRIBUTE_ACCESSORS(UAuraAttributeSet, IncomingDamage)
+	
 #pragma region OnRep Functions
 	
 	UFUNCTION()
@@ -207,8 +231,21 @@ public:
 	UFUNCTION()
 	void OnRep_ManaRegen(const FGameplayAttributeData& OldManaRegen) const;
 
+	UFUNCTION()
+	void OnRep_ResistanceFire(const FGameplayAttributeData& OldResistanceFire) const;
+
+	UFUNCTION()
+	void OnRep_ResistanceLightning(const FGameplayAttributeData& OldResistanceLightning) const;
+
+	UFUNCTION()
+	void OnRep_ResistanceArcane(const FGameplayAttributeData& OldResistanceArcane) const;
+
+	UFUNCTION()
+	void OnRep_ResistancePhysical(const FGameplayAttributeData& OldResistancePhysical) const;
+
 #pragma endregion 
 
 private:
 	void SetEffectProperties(const FGameplayEffectModCallbackData& Data, FEffectProperties& Props);
+	static void DisplayDamageNumber(FEffectProperties Props, float Damage, bool bBlockedHit, bool bCriticalHit);
 };
