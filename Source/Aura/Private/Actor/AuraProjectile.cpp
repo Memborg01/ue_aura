@@ -43,39 +43,57 @@ void AAuraProjectile::BeginPlay()
 	Super::BeginPlay();
 	SetLifeSpan(LifeSpan);
 	Sphere->OnComponentBeginOverlap.AddDynamic(this, &AAuraProjectile::OnSphereOverlap);
-	
-	LoopingSoundComponent = UGameplayStatics::SpawnSoundAttached(LoopingSound, RootComponent);
+
+	LoopingSoundComponent = UGameplayStatics::SpawnSoundAttached(LoopingSound, RootComponent, NAME_None,
+	                                                             FVector::ZeroVector, FRotator::ZeroRotator,
+	                                                             EAttachLocation::KeepRelativeOffset, true);
+}
+
+void AAuraProjectile::PlayImpactEffects() const
+{
+	UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, GetActorLocation(), FRotator::ZeroRotator);
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactEffect, GetActorLocation());
 }
 
 void AAuraProjectile::Destroyed()
 {
 	if (!bHit && !HasAuthority())
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, GetActorLocation(), FRotator::ZeroRotator);
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactEffect, GetActorLocation());
-		
+		PlayImpactEffects();
 	}
-	if (LoopingSoundComponent)
+	/*if (LoopingSoundComponent)
 	{
 		LoopingSoundComponent->Stop();
-	}
+	}*/
 	Super::Destroyed();
 }
 
 void AAuraProjectile::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-                                      UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+                                      UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
+                                      const FHitResult& SweepResult)
 {
-	UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, GetActorLocation(), FRotator::ZeroRotator);
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactEffect, GetActorLocation());
-	LoopingSoundComponent->Stop();
+	if (!IsValid(GetOwner()))
+	{
+		bHit = true;
+		Destroy();
+		return;
+	}
+
+	if (OtherActor == GetOwner()) return;
+
+	if (!bHit)
+	{
+		PlayImpactEffects();
+	}
 
 	if (HasAuthority())
 	{
+		check(DamageEffectSpecHandle.Data);
 		if (UAbilitySystemComponent* TargetAsc = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor))
 		{
 			TargetAsc->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
 		}
-		
+
 		Destroy();
 	}
 	else
@@ -83,5 +101,3 @@ void AAuraProjectile::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, 
 		bHit = true;
 	}
 }
-
-

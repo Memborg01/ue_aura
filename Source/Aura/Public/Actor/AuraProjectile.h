@@ -28,6 +28,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	void PlayImpactEffects() const;
 	virtual void Destroyed() override;
 
 	UFUNCTION()
