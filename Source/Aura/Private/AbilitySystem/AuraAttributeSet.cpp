@@ -80,6 +80,8 @@ void UAuraAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 
 void UAuraAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
 {
+	Super::PreAttributeChange(Attribute, NewValue);
+	
 	if (Attribute == GetHealthAttribute())
 	{
 		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxHealth());
@@ -88,19 +90,15 @@ void UAuraAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, 
 	{
 		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxMana());
 	}
-
-	Super::PreAttributeChange(Attribute, NewValue);
 	//UE_LOG(LogTemp, Warning, TEXT("%s: %f"), *Attribute.AttributeName, NewValue);
 }
 
-void UAuraAttributeSet::SetEffectProperties(const FGameplayEffectModCallbackData& Data, FEffectProperties& Props)
+void UAuraAttributeSet::SetEffectProperties(const FGameplayEffectModCallbackData& Data, FEffectProperties& Props) const
 {
 	Props.EffectContextHandle = Data.EffectSpec.GetContext();
 	Props.SourceASC = Props.EffectContextHandle.GetOriginalInstigatorAbilitySystemComponent();
 
-	Props.SourceAvatarActor = Props.SourceASC->GetAvatarActor();
-
-	if (IsValid(Props.SourceASC))
+	if (IsValid(Props.SourceASC) && Props.SourceASC->AbilityActorInfo.IsValid() && Props.SourceASC->AbilityActorInfo->AvatarActor.IsValid())
 	{
 		Props.SourceAvatarActor = Props.SourceASC->GetAvatarActor();
 		Props.SourceController = Props.SourceASC->AbilityActorInfo->PlayerController.Get();
@@ -113,11 +111,11 @@ void UAuraAttributeSet::SetEffectProperties(const FGameplayEffectModCallbackData
 		}
 		if (Props.SourceController)
 		{
-			Props.SourceCharacter = Props.SourceController->GetCharacter();
+			Props.SourceCharacter = Cast<ACharacter>(Props.SourceController->GetPawn());
 		}
 	}
 
-	if (Data.Target.AbilityActorInfo.IsValid())
+	if (Data.Target.AbilityActorInfo.IsValid() && Data.Target.AbilityActorInfo->AvatarActor.IsValid())
 	{
 		Props.TargetAvatarActor = Data.Target.GetAvatarActor();
 		Props.TargetController = Data.Target.AbilityActorInfo->PlayerController.Get();
@@ -130,10 +128,16 @@ void UAuraAttributeSet::DisplayDamageNumber(FEffectProperties Props, const float
 {
 	if (Props.SourceCharacter != Props.TargetCharacter)
 	{
-		if (AAuraPlayerController* PC = Cast<AAuraPlayerController>(Props.SourceController))
+		if (AAuraPlayerController* PC = Cast<AAuraPlayerController>(Props.SourceCharacter->Controller))
+		{
+			PC->ShowDamageNumber(Damage, Props.TargetCharacter, bBlockedHit, bCriticalHit);
+			return;
+		}
+		if (AAuraPlayerController* PC = Cast<AAuraPlayerController>(Props.TargetCharacter->Controller))
 		{
 			PC->ShowDamageNumber(Damage, Props.TargetCharacter, bBlockedHit, bCriticalHit);
 		}
+		
 	}
 }
 

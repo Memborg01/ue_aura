@@ -7,6 +7,7 @@
 #include "AuraAbilityTypes.h"
 #include "AbilitySystem/Data/CharacterClassInfo.h"
 #include "Game/AuraGameModeBase.h"
+#include "Interaction/CombatInterface.h"
 #include "UI/WidgetController/AuraWidgetController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/AuraPlayerState.h"
@@ -69,13 +70,24 @@ void UAuraAbilitySystemLibrary::InitializeDefaultAttributes(const UObject* World
 	Asc->ApplyGameplayEffectSpecToSelf(*VitalAttributeSpecHandle.Data.Get());
 }
 
-void UAuraAbilitySystemLibrary::GiveStartupAbilities(const UObject* WorldContextObject, UAbilitySystemComponent* Asc)
+void UAuraAbilitySystemLibrary::GiveStartupAbilities(const UObject* WorldContextObject, UAbilitySystemComponent* Asc,
+                                                     ECharacterClass CharacterClass)
 {
 	const UCharacterClassInfo* ClassInfo = GetCharacterClassInfo(WorldContextObject);
+	if (!ClassInfo) return;
 	for (TSubclassOf<UGameplayAbility> AbilityClass : ClassInfo->CommonAbilities)
 	{
 		FGameplayAbilitySpec AbilitySpec = FGameplayAbilitySpec(AbilityClass, 1);
 		Asc->GiveAbility(AbilitySpec);
+	}
+	const FCharacterClassDefaultInfo DefaultInfo = ClassInfo->GetClassDefaultInfo(CharacterClass);
+	for (TSubclassOf<UGameplayAbility> ClassAbility : DefaultInfo.StartupAbilities)
+	{
+		if (ICombatInterface* CombatInterface = Cast<ICombatInterface>(Asc->GetAvatarActor()))
+		{
+			FGameplayAbilitySpec AbilitySpec = FGameplayAbilitySpec(ClassAbility, CombatInterface->GetPlayerLevel());
+			Asc->GiveAbility(AbilitySpec);
+		}
 	}
 }
 
@@ -89,7 +101,8 @@ UCharacterClassInfo* UAuraAbilitySystemLibrary::GetCharacterClassInfo(const UObj
 
 bool UAuraAbilitySystemLibrary::IsBlockedHit(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.
+	if (const FAuraGameplayEffectContext* AuraContext = static_cast<const FAuraGameplayEffectContext*>(
+		EffectContextHandle.
 		Get()))
 	{
 		return AuraContext->IsBlocked();
@@ -109,7 +122,8 @@ void UAuraAbilitySystemLibrary::SetIsBlockedHit(FGameplayEffectContextHandle& Ef
 
 bool UAuraAbilitySystemLibrary::IsCriticalHit(const FGameplayEffectContextHandle& EffectContextHandle)
 {
-	if (const FAuraGameplayEffectContext* AuraContext = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.
+	if (const FAuraGameplayEffectContext* AuraContext = static_cast<const FAuraGameplayEffectContext*>(
+		EffectContextHandle.
 		Get()))
 	{
 		return AuraContext->IsCriticalHit();
@@ -124,5 +138,36 @@ void UAuraAbilitySystemLibrary::SetIsCriticalHit(FGameplayEffectContextHandle& E
 		Get()))
 	{
 		AuraContext->SetIsCriticalHit(bIsCriticalHit);
+	}
+}
+
+void UAuraAbilitySystemLibrary::GetLivePlayersWithinRadius(const UObject* WorldContextObject,
+                                                           TArray<AActor*>& OutOverlappingActors,
+                                                           const TArray<AActor*>& ActorsToIgnore, float Radius,
+                                                           const FVector& SphereOrigin)
+{
+	FCollisionQueryParams SphereParams;
+	SphereParams.AddIgnoredActors(ActorsToIgnore);
+
+	TArray<FOverlapResult> OverlapResults;
+	if (const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject,
+	                                                             EGetWorldErrorMode::LogAndReturnNull))
+	{
+		World->OverlapMultiByObjectType(OverlapResults, SphereOrigin, FQuat::Identity,
+		                                FCollisionObjectQueryParams(
+			                                FCollisionObjectQueryParams::InitType::AllDynamicObjects),
+		                                FCollisionShape::MakeSphere(Radius), SphereParams);
+
+		for (const FOverlapResult& OverlapResult : OverlapResults)
+		{
+			if (AActor* OverlappingActor = OverlapResult.GetActor())
+			{
+				if (OverlappingActor->Implements<UCombatInterface>() &&
+					!ICombatInterface::Execute_IsDead(OverlappingActor))
+				{
+					OutOverlappingActors.AddUnique(OverlappingActor);
+				}
+			}
+		}
 	}
 }

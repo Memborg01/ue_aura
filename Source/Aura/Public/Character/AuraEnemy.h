@@ -34,6 +34,8 @@ public:
 #pragma region Combat Interface
 	virtual int32 GetPlayerLevel() override;
 	virtual void OnDeath() override;
+	virtual void SetCombatTarget_Implementation(AActor* InCombatTarget) override;
+	virtual AActor* GetCombatTarget_Implementation() override;
 #pragma endregion 
 	/** end Combat Interface */
 
@@ -57,6 +59,9 @@ public:
 
 	UFUNCTION()
 	void HitReactTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
+
+	UPROPERTY(BlueprintReadWrite, Category = "Combat")
+	TObjectPtr<AActor> CombatTarget;
 
 protected:
 	virtual void BeginPlay() override;

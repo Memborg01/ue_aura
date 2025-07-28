@@ -246,6 +246,6 @@ public:
 #pragma endregion 
 
 private:
-	void SetEffectProperties(const FGameplayEffectModCallbackData& Data, FEffectProperties& Props);
+	void SetEffectProperties(const FGameplayEffectModCallbackData& Data, FEffectProperties& Props) const;
 	static void DisplayDamageNumber(FEffectProperties Props, float Damage, bool bBlockedHit, bool bCriticalHit);
 };
