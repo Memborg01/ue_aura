@@ -7,7 +7,7 @@
 #include "EnemyInterface.generated.h"
 
 // This class does not need to be modified.
-UINTERFACE()
+UINTERFACE(MinimalAPI)
 class UEnemyInterface : public UInterface
 {
 	GENERATED_BODY()
